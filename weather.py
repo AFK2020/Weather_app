@@ -2,12 +2,45 @@ import requests, json
 import functools
 import time
 import datetime
+from datetime import date, timedelta
+from datetime import datetime
+import matplotlib.pyplot as plt
 import csv
+import pandas as pd
 from csv import writer
 import argparse
 
 
+def pipeline(start_dt,end_dt):
 
+    start=(start_dt)
+    end=(end_dt)
+    delta = timedelta(days=1)
+
+    graph_list=[]
+    csv_list=[]
+    dates = []
+    file_path="Data.csv"
+
+    while start <= end:
+        # add current date to list by converting  it to iso format
+        dates.append(start.strftime("%Y-%m-%d"))
+        # increment start date by timedelta
+        start += delta
+
+    for dt in dates:
+        result=fetch_data(dt)
+        dict_data=extract_save_data(result,file_path)
+        graph_list.append(dict_data)
+
+    
+
+
+
+def plot_graph(lst):
+
+    for i in range(len(lst+1)):
+        plt.plot(lst[0]["Date"],lst[0]["Minimum Temperature"])
 
 
 
@@ -15,10 +48,12 @@ import argparse
 def retry(func):
     pass
 
-def fetch_data():
+def fetch_data(start_date):
+
+    start_date=str(start_date)
 
     try:
-        weatherAPI="https://archive-api.open-meteo.com/v1/archive?latitude=52.52&longitude=13.41&start_date=2025-01-01&end_date=2025-01-03&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,soil_temperature_0_to_7cm&timezone=GMT"
+        weatherAPI=f"https://archive-api.open-meteo.com/v1/archive?latitude=52.52&longitude=13.41&start_date={start_date}&end_date={start_date}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,soil_temperature_0_to_7cm&timezone=GMT"
 
         response=requests.get(weatherAPI)
         #print(response)
@@ -34,12 +69,9 @@ def fetch_data():
     
 
 
-def extract_save_data(result,file_path,desired_date):
+def extract_save_data(result,file_path):
 
     count=0
-
-    unique_date=set(time[:10] for time in result["hourly"]["time"])
-    print(unique_date)
 
     min_temp = float('inf')
     max_temp = float('-inf')
@@ -49,7 +81,6 @@ def extract_save_data(result,file_path,desired_date):
     max_wind_speed = float('-inf')
     temp_sum=soil_temp_sum=wind_speed_sum=0
 
-
     for i in range(len(result["hourly"]["time"])):
         time= result["hourly"]["time"][i]
         temprature = result["hourly"]["temperature_2m"][i]
@@ -57,31 +88,29 @@ def extract_save_data(result,file_path,desired_date):
         windspeed =result["hourly"]["wind_speed_10m"][i]
         count+=1
 
-        if time[:10]==desired_date:
-            temp_sum+=temprature
-            wind_speed_sum +=windspeed
-            soil_temp_sum+=soil_temp
+        temp_sum+=temprature
+        wind_speed_sum +=windspeed
+        soil_temp_sum+=soil_temp
 
-            if temprature>max_temp:
-                max_temp=temprature
-            
+        if temprature>max_temp:
+            max_temp=temprature
+        
 
-            if temprature< min_temp:
-                min_temp=temprature
-                #print(min_temp)
+        if temprature< min_temp:
+            min_temp=temprature
 
-            if soil_temp>max_soil_temp:
-                max_soil_temp=soil_temp
-            
-            if soil_temp<min_soil_temp:
+        if soil_temp>max_soil_temp:
+            max_soil_temp=soil_temp
+        
+        if soil_temp<min_soil_temp:
 
-                min_soil_temp=soil_temp
+            min_soil_temp=soil_temp
 
-            if windspeed>max_wind_speed:
-                max_wind_speed=windspeed
-            
-            if windspeed<min_wind_speed:
-                min_wind_speed= windspeed    
+        if windspeed>max_wind_speed:
+            max_wind_speed=windspeed
+        
+        if windspeed<min_wind_speed:
+            min_wind_speed= windspeed    
 
 
 
@@ -95,6 +124,7 @@ def extract_save_data(result,file_path,desired_date):
 
 
         }
+
 
         try:
         # Try to open the file in read mode
@@ -116,37 +146,42 @@ def extract_save_data(result,file_path,desired_date):
                 writer = csv.DictWriter(file, fieldnames=dictionary.keys())
                 writer.writeheader()  # Write the header. The key values are the headers
                 writer.writerow(dictionary)  # Write the first row of data
-    
 
-    #print(f"Minimum Temp=",min_temp,"C \nMaximum Temp", max_temp,"C ")
-    # print(f"Minimum windspeed=",min_wind_speed,"\nMaximum windspeed", max_wind_speed)
-    # print(f"Minimum soil Temperature=",min_soil_temp,"\nMaximum soil Temperature", max_soil_temp)
-    # print(f"Avergae Temperature=",temp_sum/count)
-    # print(f"Avergae windspeed=",wind_speed_sum/count)
-    # print(f"Avergae Soil Temp=",soil_temp_sum/count)
+    dict2={
+        "Date": time,
+        "Minimum Temperature": min_temp,
+        "Maximum Temperature": max_temp,
+        "Avergae Temperature" : temp_sum/count,
+        "Minimum Windspeed": min_wind_speed,
+        "Maximum Windspeed": max_wind_speed,
+        "Avergae Temperature" : wind_speed_sum/count,
+        "Minimum Soil Temperature": min_soil_temp,
+        "Maximum Soil Temperature" : max_soil_temp,
+        "Average Soil Temperature" : soil_temp_sum/count
+    }
 
 
-
-
-
-
-
-result=fetch_data()
-
-file_path="Data.csv"
-
-date= "2025-01-01"
-extract_save_data(result,file_path, date)
+    return dict2
 
 
 
 
 
 
-# if __name__ == "__main__":
 
-#     parser=argparse.ArgumentParser()    #create parse object
+if __name__ == "__main__":
 
-#     parser.add_argument("Start_date", "end_date", type=str ,  help="Start and end date in format YYYY-MM_DD")
-#     # your function here
+    parser=argparse.ArgumentParser()    #create parse object
+
+    parser.add_argument("Start_date", type=str , help="Start and end date in format YYYY-MM_DD")
+    parser.add_argument("End_date", type=str , help="Start and end date in format YYYY-MM_DD")
+
+    args=parser.parse_args()
+    start_date = datetime.strptime(args.Start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(args.End_date, "%Y-%m-%d")
+
+
+
+    pipeline(start_date,end_date)
+    # your function here
 
