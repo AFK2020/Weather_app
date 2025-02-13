@@ -33,12 +33,39 @@ def retry(func, retries=3):
 def plot_graph(lst):
 
 
-    dates = [element["Date"] for element in lst]        #one line for loop 
+    dates = [element["Date"][:10] for element in lst]        #one line for loop 
     min_temps= [element["Minimum_Temperature"] for element in lst]
+    
+    max_temps= [element["Maximum_Temperature"] for element in lst]
+    min_ws= [element["Minimum_Windspeed"] for element in lst]
+    max_ws=[element["Maximum_Windspeed"] for element in lst]
+    min_st=[element["Minimum_Soil_Temperature"] for element in lst]
+    max_st=[element["Maximum_Temperature"] for element in lst]
+    avg_temp=[element["Average_Temperature"] for element in lst]
+    avg_wd=[element["Average_Windspeed"] for element in lst]
+    avg_st=[element["Average_Soil_Temperature"] for element in lst]
 
 
-    plt.plot(dates,min_temps)
+
+
+    plt.plot(dates,min_temps, label= "Min Temp")
+    plt.plot(dates,max_temps, label= "Min Temp")
+    plt.plot(dates,min_ws, label= "Min windspeed")
+    plt.plot(dates,max_ws, label= "Max windspeed")
+    plt.plot(dates,min_st, label= "Min Soil Temp")
+    plt.plot(dates,max_st, label= "Max Soil Temp")
+    plt.legend()
+
+
+    plt.xticks(rotation=45, ha='right')
+
+    plt.title("Weather values Vs Date")
+
+    plt.xlabel("Date")
+
+
     plt.show()
+
 
 
 def csv_write(csv_list,file_path):
