@@ -6,54 +6,49 @@ from datetime import date, timedelta
 from datetime import datetime
 import matplotlib.pyplot as plt
 import csv
-import pandas as pd
 from csv import writer
 import argparse
+from utils import retry
+from utils import csv_write
+from utils import plot_graph
 
 
-def pipeline(start_dt,end_dt):
+def pipeline(start,end):
 
-    start=(start_dt)
-    end=(end_dt)
     delta = timedelta(days=1)
+    dates = []
+
 
     graph_list=[]
-    csv_list=[]
-    dates = []
+    csv_lst=[]
     file_path="Data.csv"
 
     while start <= end:
-        # add current date to list by converting  it to iso format
         dates.append(start.strftime("%Y-%m-%d"))
-        # increment start date by timedelta
+        #dates.append(start.date())
         start += delta
 
     for dt in dates:
         result=fetch_data(dt)
-        dict_data=extract_save_data(result,file_path)
-        graph_list.append(dict_data)
+        dict_data=extract_save_data(result)
+        graph_list.append(dict_data[0])
+        csv_lst.append(dict_data[1])
+
+    csv_write(csv_lst,file_path)
+
+    plot_graph(graph_list)
+
+
 
     
 
-
-
-def plot_graph(lst):
-
-    for i in range(len(lst+1)):
-        plt.plot(lst[0]["Date"],lst[0]["Minimum Temperature"])
-
-
-
-
-def retry(func):
-    pass
-
+@retry
 def fetch_data(start_date):
 
     start_date=str(start_date)
-
+    http_url="https://archive-api.open-meteo.com/v1/archive"
     try:
-        weatherAPI=f"https://archive-api.open-meteo.com/v1/archive?latitude=52.52&longitude=13.41&start_date={start_date}&end_date={start_date}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,soil_temperature_0_to_7cm&timezone=GMT"
+        weatherAPI=f"{http_url}?latitude=52.52&longitude=13.41&start_date={start_date}&end_date={start_date}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,soil_temperature_0_to_7cm&timezone=GMT"
 
         response=requests.get(weatherAPI)
         #print(response)
@@ -69,10 +64,11 @@ def fetch_data(start_date):
     
 
 
-def extract_save_data(result,file_path):
+def extract_save_data(result):
 
     count=0
 
+    lst_dict=[]
     min_temp = float('inf')
     max_temp = float('-inf')
     min_soil_temp = float('inf')
@@ -112,60 +108,30 @@ def extract_save_data(result,file_path):
         if windspeed<min_wind_speed:
             min_wind_speed= windspeed    
 
-
-
-
         dictionary={
-
             "Date" : time,
             "temprature" : temprature,
             "soil_temprature": soil_temp,
             "windspeed" : windspeed
-
-
         }
 
-
-        try:
-        # Try to open the file in read mode
-            with open(file_path, 'r', newline='', encoding='utf-8'):
-                file_exists = True
-        except FileNotFoundError:
-            # If file doesn't exist, it will raise an error, so set file_exists to False
-            file_exists = False
-
-
-        if file_exists:
-            # If the file exists, append to it
-            with open(file_path, 'a', newline='', encoding='utf-8') as file:
-                writer = csv.DictWriter(file, fieldnames=dictionary.keys())
-                writer.writerow(dictionary)
-        else:
-            # If the file doesn't exist, create it and write the data
-            with open(file_path, 'w', newline='', encoding='utf-8') as file:
-                writer = csv.DictWriter(file, fieldnames=dictionary.keys())
-                writer.writeheader()  # Write the header. The key values are the headers
-                writer.writerow(dictionary)  # Write the first row of data
+        lst_dict.append(dictionary)
 
     dict2={
         "Date": time,
-        "Minimum Temperature": min_temp,
-        "Maximum Temperature": max_temp,
-        "Avergae Temperature" : temp_sum/count,
-        "Minimum Windspeed": min_wind_speed,
-        "Maximum Windspeed": max_wind_speed,
-        "Avergae Temperature" : wind_speed_sum/count,
-        "Minimum Soil Temperature": min_soil_temp,
-        "Maximum Soil Temperature" : max_soil_temp,
-        "Average Soil Temperature" : soil_temp_sum/count
+        "Minimum_Temperature": min_temp,
+        "Maximum_Temperature": max_temp,
+        "Avergae_Temperature" : temp_sum/count,
+        "Minimum_Windspeed": min_wind_speed,
+        "Maximum_Windspeed": max_wind_speed,
+        "Avergae_Temperature" : wind_speed_sum/count,
+        "Minimum_Soil_Temperature": min_soil_temp,
+        "Maximum_Soil_Temperature" : max_soil_temp,
+        "Average_Soil_Temperature" : soil_temp_sum/count
     }
 
 
-    return dict2
-
-
-
-
+    return dict2,lst_dict
 
 
 
@@ -179,6 +145,7 @@ if __name__ == "__main__":
     args=parser.parse_args()
     start_date = datetime.strptime(args.Start_date, "%Y-%m-%d")
     end_date = datetime.strptime(args.End_date, "%Y-%m-%d")
+
 
 
 
