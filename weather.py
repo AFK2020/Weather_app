@@ -34,9 +34,12 @@ def fetch_data():
     
 
 
-def extract_save_data(result,file_path):
+def extract_save_data(result,file_path,desired_date):
 
     count=0
+
+    unique_date=set(time[:10] for time in result["hourly"]["time"])
+    print(unique_date)
 
     min_temp = float('inf')
     max_temp = float('-inf')
@@ -54,32 +57,31 @@ def extract_save_data(result,file_path):
         windspeed =result["hourly"]["wind_speed_10m"][i]
         count+=1
 
+        if time[:10]==desired_date:
+            temp_sum+=temprature
+            wind_speed_sum +=windspeed
+            soil_temp_sum+=soil_temp
 
-        temp_sum+=temprature
-        wind_speed_sum +=windspeed
-        soil_temp_sum+=soil_temp
+            if temprature>max_temp:
+                max_temp=temprature
+            
 
-        if temprature>max_temp:
-            max_temp=temprature
-            max_date=time
-        
+            if temprature< min_temp:
+                min_temp=temprature
+                #print(min_temp)
 
-        elif temprature< min_temp:
-            min_temp=temprature
-            min_time=time
+            if soil_temp>max_soil_temp:
+                max_soil_temp=soil_temp
+            
+            if soil_temp<min_soil_temp:
 
-        if soil_temp>max_soil_temp:
-            max_soil_temp=soil_temp
-        
-        elif soil_temp<min_soil_temp:
+                min_soil_temp=soil_temp
 
-            min_soil_temp=soil_temp
-
-        if windspeed>max_wind_speed:
-            max_wind_speed=windspeed
-        
-        elif windspeed<min_wind_speed:
-            min_wind_speed= windspeed    
+            if windspeed>max_wind_speed:
+                max_wind_speed=windspeed
+            
+            if windspeed<min_wind_speed:
+                min_wind_speed= windspeed    
 
 
 
@@ -116,15 +118,12 @@ def extract_save_data(result,file_path):
                 writer.writerow(dictionary)  # Write the first row of data
     
 
-    print(f"Minimum Temp=",min_temp,"C at Date",{min_time},"\nMaximum Temp", max_temp,"C at Date", {max_date})
-    print(f"Minimum windspeed=",min_wind_speed,"\nMaximum windspeed", max_wind_speed)
-    print(f"Minimum soil Temperature=",min_soil_temp,"\nMaximum soil Temperature", max_soil_temp)
-    print(f"Avergae Temperature=",temp_sum/count)
-    print(f"Avergae windspeed=",wind_speed_sum/count)
-    print(f"Avergae Soil Temp=",soil_temp_sum/count)
-
-
-
+    #print(f"Minimum Temp=",min_temp,"C \nMaximum Temp", max_temp,"C ")
+    # print(f"Minimum windspeed=",min_wind_speed,"\nMaximum windspeed", max_wind_speed)
+    # print(f"Minimum soil Temperature=",min_soil_temp,"\nMaximum soil Temperature", max_soil_temp)
+    # print(f"Avergae Temperature=",temp_sum/count)
+    # print(f"Avergae windspeed=",wind_speed_sum/count)
+    # print(f"Avergae Soil Temp=",soil_temp_sum/count)
 
 
 
@@ -136,7 +135,8 @@ result=fetch_data()
 
 file_path="Data.csv"
 
-total_count=extract_save_data(result,file_path)
+date= "2025-01-01"
+extract_save_data(result,file_path, date)
 
 
 
